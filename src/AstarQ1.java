@@ -1,6 +1,8 @@
 import java.util.LinkedList;
+import java.util.*;
 public class AstarQ1 {
-
+    private int fopt;                       //f value optioins: 1, 2, or 3
+    private int hopt;
 
 //This program solves sliding puzzle using A* algorithm
 
@@ -11,26 +13,17 @@ public class AstarQ1 {
         private int hvalue;                     //heuristic value
         private int fvalue;                     //gvalue plus hvalue
         private Board parent;                   //parent board
+                      //h value options: 1 or 2
 
         //Constructor of board class
-        private Board(char[][] array, int size, int fopt) {//added a new parameter called fopt which is the f value options
+        private Board(char[][] array, int size) {//added a new parameter called fopt which is the f value options
             this.array = new char[size][size];  //create board array
 
             for (int i = 0; i < size; i++)      //copy given array
                 for (int j = 0; j < size; j++)
                     this.array[i][j] = array[i][j];
 
-            if(fopt == 3) {
-                this.gvalue = 0;                    //path cost, heuristic value,
-                this.hvalue = 0;                    //fvalue are all 0
-                this.fvalue = 0;
-            }
-            else if(fopt ==2){
-                this.gvalue = 0;
-            }
-            else if(fopt == 1){
-                this.hvalue = 0;
-            }
+
 
             this.parent = null;                 //no parent
         }
@@ -41,13 +34,18 @@ public class AstarQ1 {
     private int size;                              //board size
 
     //Constructor of SlidingAstar class
-    public AstarQ1(char[][] initial, char[][] goal, int size) {
-        this.size = size;                          //set size of board
-        this.initial = new Board(initial, size, fopt);   //create initial board
+    public AstarQ1(char[][] initial, char[][] goal, int size, int fopt, int hopt) {
+        this.size = size;
+        this.fopt = fopt;   //create initial f value
+        this.hopt = hopt;   //create initial h value
+        this.initial = new Board(initial, size);   //create initial board
         this.goal = new Board(goal, size);         //create goal board
+
+
     }
 
     //Method solves sliding puzzle
+    long startTime = System.nanoTime();
     public void solve() {
         LinkedList<Board> openList = new LinkedList<Board>();  //open list
         LinkedList<Board> closedList = new LinkedList<Board>();//closed list
@@ -89,7 +87,8 @@ public class AstarQ1 {
             }
         }
 
-        System.out.println("no solution");            //no solution if there are
+        System.out.println("no solution");
+       //no solution if there are
     }                                                  //no boards in open list
 
     //Method creates children of a board
@@ -117,17 +116,17 @@ public class AstarQ1 {
 
         LinkedList<Board> children = new LinkedList<Board>();//list of children
 
-        if (north) children.addLast(createChild(board, i, j, 'N')); //add N, S, E, W
-        if (south) children.addLast(createChild(board, i, j, 'S')); //children if
-        if (east) children.addLast(createChild(board, i, j, 'E'));  //they exist
-        if (west) children.addLast(createChild(board, i, j, 'W'));
+        if (north) children.addLast(createChild(board, i, j, 'N', fopt, hopt)); //add N, S, E, W
+        if (south) children.addLast(createChild(board, i, j, 'S', fopt, hopt)); //children if
+        if (east) children.addLast(createChild(board, i, j, 'E', fopt, hopt));  //they exist
+        if (west) children.addLast(createChild(board, i, j, 'W', fopt, hopt));
 
         return children;                        //return children
     }
 
     //Method creates a child of a board by swapping empty slot in a
     //given direction
-    private Board createChild(Board board, int i, int j, char direction) {
+    private Board createChild(Board board, int i, int j, char direction, int fopt, int hopt) {
         Board child = copy(board);                   //create copy of board
 
         if (direction == 'N')                        //swap empty slot to north
@@ -151,7 +150,12 @@ public class AstarQ1 {
         if(fopt ==3) {
             child.gvalue = board.gvalue + 1;             //parent path cost plus one
 
-            child.hvalue = heuristic_M(child);           //heuristic value of child
+            if(hopt ==1){
+                child.hvalue = heuristic_M(child);
+            }
+            else{
+                child.hvalue = heuristic_D(child);
+            }
 
             child.fvalue = child.gvalue + child.hvalue;  //gvalue plus hvalue
 
@@ -159,9 +163,12 @@ public class AstarQ1 {
         }
         else if(fopt == 2){
             child.gvalue = board.gvalue + 1;
+            child.fvalue = child.gvalue;
         }
         else if(fopt == 1){
             child.hvalue = heuristic_M(child);
+            child.fvalue = child.hvalue;
+            child.gvalue = board.gvalue+1; //This tracks the amount of swaps since everytime we go to a new board the cost is 1, count the total number for the gvalue and that is the total number of swaps
         }                                                                               //assign parent to child
 
         return child;                                //return child
@@ -181,7 +188,7 @@ public class AstarQ1 {
 
     //Method computes heuristic value of board
     //Heuristic value is the sum of taxi distances of misplaced values
-    private int heuristic_D(Board board, int hopt) {
+    private int heuristic_D(Board board) {
         //initial heuristic value
         int value = 0;
 
@@ -202,10 +209,10 @@ public class AstarQ1 {
                         if (found)
                             break;
                     }
-                    if(hopt == 2) {
+
                         //find city distance between two locations
                         value += (int) Math.abs(x - i) + (int) Math.abs(y - j);
-                    }
+
 
                 }
 
@@ -267,6 +274,8 @@ public class AstarQ1 {
 
         return true;                   //otherwise true
     }
+
+
 
     //Method displays path from initial to current board
     private void displayPath(Board board) {
